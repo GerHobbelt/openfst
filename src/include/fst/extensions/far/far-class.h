@@ -68,7 +68,7 @@ class FarReaderClassImpl : public FarReaderImplBase {
   bool Find(const std::string &key) final { return reader_->Find(key); }
 
   const FstClass *GetFstClass() const final {
-    fstc_ = fst::make_unique<FstClass>(*reader_->GetFst());
+    fstc_ = std::make_unique<FstClass>(*reader_->GetFst());
     return fstc_.get();
   }
 
@@ -122,7 +122,7 @@ class FarReaderClass {
   const FarReader<Arc> *GetFarReader() const {
     if (Arc::Type() != ArcType()) return nullptr;
     const FarReaderClassImpl<Arc> *typed_impl =
-        fst::down_cast<FarReaderClassImpl<Arc> *>(impl_.get());
+        down_cast<FarReaderClassImpl<Arc> *>(impl_.get());
     return typed_impl->GetFarReader();
   }
 
@@ -130,7 +130,7 @@ class FarReaderClass {
   FarReader<Arc> *GetFarReader() {
     if (Arc::Type() != ArcType()) return nullptr;
     FarReaderClassImpl<Arc> *typed_impl =
-        fst::down_cast<FarReaderClassImpl<Arc> *>(impl_.get());
+        down_cast<FarReaderClassImpl<Arc> *>(impl_.get());
     return typed_impl->GetFarReader();
   }
 
@@ -157,7 +157,7 @@ class FarReaderClass {
 
 template <class Arc>
 void OpenFarReaderClass(OpenFarReaderClassArgs *args) {
-  auto impl = fst::make_unique<FarReaderClassImpl<Arc>>(args->args);
+  auto impl = std::make_unique<FarReaderClassImpl<Arc>>(args->args);
   if (impl->GetFarReader() == nullptr) {
     // Underlying reader failed to open, so return failure here, too.
     args->retval = nullptr;
@@ -243,7 +243,7 @@ class FarWriterClass {
   const FarWriter<Arc> *GetFarWriter() const {
     if (Arc::Type() != ArcType()) return nullptr;
     const FarWriterClassImpl<Arc> *typed_impl =
-        fst::down_cast<FarWriterClassImpl<Arc> *>(impl_.get());
+        down_cast<FarWriterClassImpl<Arc> *>(impl_.get());
     return typed_impl->GetFarWriter();
   }
 
@@ -251,7 +251,7 @@ class FarWriterClass {
   FarWriter<Arc> *GetFarWriter() {
     if (Arc::Type() != ArcType()) return nullptr;
     FarWriterClassImpl<Arc> *typed_impl =
-        fst::down_cast<FarWriterClassImpl<Arc> *>(impl_.get());
+        down_cast<FarWriterClassImpl<Arc> *>(impl_.get());
     return typed_impl->GetFarWriter();
   }
 
@@ -271,7 +271,7 @@ class FarWriterClass {
 template <class Arc>
 void CreateFarWriterClass(CreateFarWriterClassArgs *args) {
   args->retval = fst::WrapUnique(
-      new FarWriterClass(fst::make_unique<FarWriterClassImpl<Arc>>(
+      new FarWriterClass(std::make_unique<FarWriterClassImpl<Arc>>(
           std::get<0>(args->args), std::get<1>(args->args))));
 }
 

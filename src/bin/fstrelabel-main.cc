@@ -17,6 +17,7 @@
 //
 // Relabels input or output space of an FST.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/util.h>
 #include <fst/script/relabel.h>
 #include <fst/script/weight-class.h>
@@ -74,45 +74,49 @@ int fstrelabel_main(int argc, char **argv) {
   if (!fst) return 1;
 
   // Relabel with symbol tables.
-  const SymbolTableTextOptions opts(FLAGS_allow_negative_labels);
+  const SymbolTableTextOptions opts(FST_FLAGS_allow_negative_labels);
 
-  if (!FLAGS_relabel_isymbols.empty() ||
-      !FLAGS_relabel_osymbols.empty()) {
+  if (!FST_FLAGS_relabel_isymbols.empty() ||
+      !FST_FLAGS_relabel_osymbols.empty()) {
     bool attach_new_isymbols = (fst->InputSymbols() != nullptr);
     std::unique_ptr<const SymbolTable> old_isymbols(
-        FLAGS_isymbols.empty()
+        FST_FLAGS_isymbols.empty()
             ? nullptr
-            : SymbolTable::ReadText(FLAGS_isymbols, opts));
+            : SymbolTable::ReadText(FST_FLAGS_isymbols, opts));
     const std::unique_ptr<const SymbolTable> relabel_isymbols(
-        FLAGS_relabel_isymbols.empty()
+        FST_FLAGS_relabel_isymbols.empty()
             ? nullptr
-            : SymbolTable::ReadText(FLAGS_relabel_isymbols, opts));
+            : SymbolTable::ReadText(FST_FLAGS_relabel_isymbols,
+                                    opts));
     bool attach_new_osymbols = (fst->OutputSymbols() != nullptr);
     std::unique_ptr<const SymbolTable> old_osymbols(
-        FLAGS_osymbols.empty()
+        FST_FLAGS_osymbols.empty()
             ? nullptr
-            : SymbolTable::ReadText(FLAGS_osymbols, opts));
+            : SymbolTable::ReadText(FST_FLAGS_osymbols, opts));
     const std::unique_ptr<const SymbolTable> relabel_osymbols(
-        FLAGS_relabel_osymbols.empty()
+        FST_FLAGS_relabel_osymbols.empty()
             ? nullptr
-            : SymbolTable::ReadText(FLAGS_relabel_osymbols, opts));
-    s::Relabel(
-        fst.get(), old_isymbols ? old_isymbols.get() : fst->InputSymbols(),
-        relabel_isymbols.get(), FLAGS_unknown_isymbol, attach_new_isymbols,
-        old_osymbols ? old_osymbols.get() : fst->OutputSymbols(),
-        relabel_osymbols.get(), FLAGS_unknown_osymbol, attach_new_osymbols);
+            : SymbolTable::ReadText(FST_FLAGS_relabel_osymbols,
+                                    opts));
+    s::Relabel(fst.get(),
+               old_isymbols ? old_isymbols.get() : fst->InputSymbols(),
+               relabel_isymbols.get(), FST_FLAGS_unknown_isymbol,
+               attach_new_isymbols,
+               old_osymbols ? old_osymbols.get() : fst->OutputSymbols(),
+               relabel_osymbols.get(), FST_FLAGS_unknown_osymbol,
+               attach_new_osymbols);
   } else {
     // Reads in relabeling pairs.
-    std::vector<std::pair<int64, int64>> ipairs;
-    if (!FLAGS_relabel_ipairs.empty()) {
-      if (!ReadLabelPairs(FLAGS_relabel_ipairs, &ipairs,
-                          FLAGS_allow_negative_labels))
+    std::vector<std::pair<int64_t, int64_t>> ipairs;
+    if (!FST_FLAGS_relabel_ipairs.empty()) {
+      if (!ReadLabelPairs(FST_FLAGS_relabel_ipairs, &ipairs,
+                          FST_FLAGS_allow_negative_labels))
         return 1;
     }
-    std::vector<std::pair<int64, int64>> opairs;
-    if (!FLAGS_relabel_opairs.empty()) {
-      if (!ReadLabelPairs(FLAGS_relabel_opairs, &opairs,
-                          FLAGS_allow_negative_labels))
+    std::vector<std::pair<int64_t, int64_t>> opairs;
+    if (!FST_FLAGS_relabel_opairs.empty()) {
+      if (!ReadLabelPairs(FST_FLAGS_relabel_opairs, &opairs,
+                          FST_FLAGS_allow_negative_labels))
         return 1;
     }
     s::Relabel(fst.get(), ipairs, opairs);

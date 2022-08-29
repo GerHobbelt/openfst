@@ -27,15 +27,17 @@
 #include <vector>
 
 #include <fst/fst.h>
+#include <fst/symbol-table.h>
 #include <fst/util.h>
 #include <fst/vector-fst.h>
 #include <unordered_map>
+#include <string_view>
 
 DECLARE_string(fst_field_separator);
 
 namespace fst {
 
-// Compile a binary Fst from textual input, helper class for fstcompile.cc
+// Compile a binary FST from textual input, helper class for fstcompile.cc.
 // WARNING: Stand-alone use of this class not recommended, most code should
 // read/write using the binary format which is much more efficient.
 template <class Arc>
@@ -84,12 +86,13 @@ class FstCompiler {
     add_symbols_ = add_symbols;
     bool start_state_populated = false;
     char line[kLineLen];
-    const std::string separator = FLAGS_fst_field_separator + "\n";
+    const std::string separator =
+        FST_FLAGS_fst_field_separator + "\n";
     while (istrm.getline(line, kLineLen)) {
       ++nline_;
-      std::vector<char *> col;
-      SplitString(line, separator.c_str(), &col, true);
-      if (col.empty() || col[0][0] == '\0') continue;
+      std::vector<std::string_view> col =
+          StrSplit(line, ByAnyChar(separator), SkipEmpty());
+      if (col.empty() || col[0].empty()) continue;
       if (col.size() > 5 || (col.size() > 4 && accep) ||
           (col.size() == 3 && !accep)) {
         FSTERROR() << "FstCompiler: Bad number of columns, source = " << source_
@@ -151,12 +154,12 @@ class FstCompiler {
   // Maximum line length in text file.
   static constexpr int kLineLen = 8096;
 
-  StateId StrToId(const char *s, SymbolTable *syms, const char *name,
-                  bool allow_negative = false) const {
+  StateId StrToId(std::string_view s, SymbolTable *syms,
+                  std::string_view name, bool allow_negative = false) const {
     StateId n = 0;
     if (syms) {
       n = (add_symbols_) ? syms->AddSymbol(s) : syms->Find(s);
-      if (n == -1 || (!allow_negative && n < 0)) {
+      if (n == kNoSymbol || (!allow_negative && n < 0)) {
         FSTERROR() << "FstCompiler: Symbol \"" << s
                    << "\" is not mapped to any integer " << name
                    << ", symbol table = " << syms->Name()
@@ -164,18 +167,18 @@ class FstCompiler {
         fst_.SetProperties(kError, kError);
       }
     } else {
-      char *p;
-      n = strtoll(s, &p, 10);
-      if (*p != '\0' || (!allow_negative && n < 0)) {
+      auto maybe_n = ParseInt64(s);
+      if (!maybe_n.has_value() || (!allow_negative && *maybe_n < 0)) {
         FSTERROR() << "FstCompiler: Bad " << name << " integer = \"" << s
                    << "\", source = " << source_ << ", line = " << nline_;
         fst_.SetProperties(kError, kError);
       }
+      n = *maybe_n;
     }
     return n;
   }
 
-  StateId StrToStateId(const char *s) {
+  StateId StrToStateId(std::string_view s) {
     StateId n = StrToId(s, ssyms_, "state ID");
     if (keep_state_numbering_) return n;
     // Remaps state IDs to make dense set.
@@ -188,17 +191,17 @@ class FstCompiler {
     }
   }
 
-  StateId StrToILabel(const char *s) const {
+  StateId StrToILabel(std::string_view s) const {
     return StrToId(s, isyms_, "arc ilabel", allow_negative_labels_);
   }
 
-  StateId StrToOLabel(const char *s) const {
+  StateId StrToOLabel(std::string_view s) const {
     return StrToId(s, osyms_, "arc olabel", allow_negative_labels_);
   }
 
-  Weight StrToWeight(const char *s, bool allow_zero) const {
+  Weight StrToWeight(std::string_view s, bool allow_zero) const {
     Weight w;
-    std::istringstream strm(s);
+    std::istringstream strm(std::string{s});
     strm >> w;
     if (!strm || (!allow_zero && w == Weight::Zero())) {
       FSTERROR() << "FstCompiler: Bad weight = \"" << s

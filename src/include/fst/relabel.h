@@ -20,12 +20,11 @@
 #ifndef FST_RELABEL_H_
 #define FST_RELABEL_H_
 
+#include <cstdint>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
 
 #include <fst/cache.h>
@@ -184,7 +183,7 @@ void Relabel(MutableFst<Arc> *fst, const SymbolTable *old_isymbols,
              bool attach_new_osymbols) {
   Relabel(fst, old_isymbols, new_isymbols, "" /* no unknown isymbol */,
           attach_new_isymbols, old_osymbols, new_osymbols,
-          "" /* no unknown ioymbol */, attach_new_osymbols);
+          "" /* no unknown osymbol */, attach_new_osymbols);
 }
 
 // Relabels either the input labels or output labels. The old to
@@ -316,10 +315,10 @@ class RelabelFstImpl : public CacheImpl<Arc> {
     return CacheImpl<Arc>::NumOutputEpsilons(s);
   }
 
-  uint64 Properties() const override { return Properties(kFstProperties); }
+  uint64_t Properties() const override { return Properties(kFstProperties); }
 
   // Sets error if found, and returns other FST impl properties.
-  uint64 Properties(uint64 mask) const override {
+  uint64_t Properties(uint64_t mask) const override {
     if ((mask & kError) && fst_->Properties(kError, false)) {
       SetProperties(kError, kError);
     }
@@ -469,7 +468,7 @@ class ArcIterator<RelabelFst<Arc>> : public CacheArcIterator<RelabelFst<Arc>> {
 template <class Arc>
 inline void RelabelFst<Arc>::InitStateIterator(
     StateIteratorData<Arc> *data) const {
-  data->base = fst::make_unique<StateIterator<RelabelFst<Arc>>>(*this);
+  data->base = std::make_unique<StateIterator<RelabelFst<Arc>>>(*this);
 }
 
 // Useful alias when using StdArc.

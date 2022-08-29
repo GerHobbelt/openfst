@@ -21,11 +21,10 @@
 #define FST_EQUIVALENT_H_
 
 #include <algorithm>
-#include <deque>
-#include <unordered_map>
+#include <cstdint>
+#include <queue>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
 
 #include <fst/encode.h>
@@ -65,7 +64,7 @@ struct EquivalenceUtil {
   // Maps state ID to the representative of the corresponding
   // equivalence class. The parameter 'which_fst' takes the values 1
   // and 2, identifying the input FST.
-  static MappedId MapState(StateId s, int32 which_fst) {
+  static MappedId MapState(StateId s, int32_t which_fst) {
     return (kNoStateId == s) ? kDeadState
                              : (static_cast<MappedId>(s) << 1) + which_fst;
   }
@@ -94,14 +93,6 @@ struct EquivalenceUtil {
   }
 };
 
-template <class Arc>
-constexpr
-    typename EquivalenceUtil<Arc>::MappedId EquivalenceUtil<Arc>::kDeadState;
-
-template <class Arc>
-constexpr
-    typename EquivalenceUtil<Arc>::MappedId EquivalenceUtil<Arc>::kInvalidId;
-
 }  // namespace internal
 
 // Equivalence checking algorithm: determines if the two FSTs fst1 and fst2
@@ -116,7 +107,7 @@ constexpr
 // of both acceptors. A disjoint tree forest (the union-find algorithm) is used
 // to represent the sets of states. The algorithm returns false if one of the
 // constructed sets contains both final and non-final states. Returns an
-// optional error value (useful when FLAGS_error_fatal = false).
+// optional error value (useful when FST_FLAGS_error_fatal = false).
 //
 // Complexity:
 //
@@ -183,14 +174,14 @@ bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
       std::unordered_map<typename Arc::Label, std::pair<MappedId, MappedId>>;
   Label2StatePairMap arc_pairs;
   // Pairs of MappedId's to be processed, organized in a queue.
-  std::deque<std::pair<MappedId, MappedId>> q;
+  std::queue<std::pair<MappedId, MappedId>> q;
   bool ret = true;
   // Returns early if the start states differ w.r.t. finality.
   if (Util::IsFinal(fst1, s1) != Util::IsFinal(fst2, s2)) ret = false;
   // Main loop: explores the two acceptors in a breadth-first manner, updating
   // the equivalence relation on the statesets. Loop invariant: each block of
   // the states contains either final states only or non-final states only.
-  for (q.emplace_back(s1, s2); ret && !q.empty(); q.pop_front()) {
+  for (q.emplace(s1, s2); ret && !q.empty(); q.pop()) {
     s1 = q.front().first;
     s2 = q.front().second;
     // Representatives of the equivalence classes of s1/s2.
@@ -230,7 +221,7 @@ bool Equivalent(const Fst<Arc> &fst1, const Fst<Arc> &fst2,
           ret = false;
           break;
         }
-        q.push_back(pair);
+        q.push(pair);
       }
     }
   }

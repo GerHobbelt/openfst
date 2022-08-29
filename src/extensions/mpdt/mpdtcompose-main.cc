@@ -17,6 +17,7 @@
 //
 // Composes an MPDT and an FST.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/mpdt/mpdtscript.h>
 #include <fst/extensions/mpdt/read_write_utils.h>
@@ -71,30 +71,32 @@ int mpdtcompose_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst2(FstClass::Read(in2_name));
   if (!ifst2) return 1;
 
-  if (FLAGS_mpdt_parentheses.empty()) {
+  if (FST_FLAGS_mpdt_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No MPDT parenthesis label pairs provided";
     return 1;
   }
 
-  std::vector<std::pair<int64, int64>> parens;
-  std::vector<int64> assignments;
-  if (!ReadLabelTriples(FLAGS_mpdt_parentheses, &parens, &assignments, false)) {
+  std::vector<std::pair<int64_t, int64_t>> parens;
+  std::vector<int64_t> assignments;
+  if (!ReadLabelTriples(FST_FLAGS_mpdt_parentheses, &parens,
+                        &assignments, false)) {
     return 1;
   }
 
   VectorFstClass ofst(ifst1->ArcType());
 
   PdtComposeFilter compose_filter;
-  if (!s::GetPdtComposeFilter(FLAGS_compose_filter, &compose_filter)) {
+  if (!s::GetPdtComposeFilter(FST_FLAGS_compose_filter,
+                              &compose_filter)) {
     LOG(ERROR) << argv[0] << ": Unknown or unsupported compose filter type: "
-               << FLAGS_compose_filter;
+               << FST_FLAGS_compose_filter;
     return 1;
   }
 
-  const MPdtComposeOptions opts(FLAGS_connect, compose_filter);
+  const MPdtComposeOptions opts(FST_FLAGS_connect, compose_filter);
 
-  s::MPdtCompose(*ifst1, *ifst2, parens, assignments, &ofst, opts,
-                 FLAGS_left_mpdt);
+  s::Compose(*ifst1, *ifst2, parens, assignments, &ofst, opts,
+             FST_FLAGS_left_mpdt);
 
   return !ofst.Write(out_name);
 }

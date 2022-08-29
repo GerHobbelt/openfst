@@ -17,6 +17,7 @@
 //
 // Outputs as strings the string FSTs in a finite-state archive.
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,7 @@ DECLARE_bool(initial_symbols);
 
 int farprintstrings_main(int argc, char **argv) {
   namespace s = fst::script;
+  using fst::script::FarReaderClass;
 
   std::string usage =
       "Print as std::string the std::string FSTs in an archive.\n\n  Usage:";
@@ -48,30 +50,39 @@ int farprintstrings_main(int argc, char **argv) {
   SET_FLAGS(usage.c_str(), &argc, &argv, true);
   s::ExpandArgs(argc, argv, &argc, &argv);
 
-  std::vector<std::string> in_sources;
-  for (int i = 1; i < argc; ++i) in_sources.push_back(argv[i]);
-  if (in_sources.empty()) in_sources.push_back("");
-
-  const auto arc_type = s::LoadArcTypeFromFar(in_sources[0]);
-  if (arc_type.empty()) return 1;
+  std::vector<std::string> sources;
+  for (int i = 1; i < argc; ++i) sources.push_back(argv[i]);
+  if (sources.empty()) sources.push_back("");
+  std::unique_ptr<FarReaderClass> reader(FarReaderClass::Open(sources));
+  if (!reader) return 1;
 
   fst::FarEntryType entry_type;
-  if (!s::GetFarEntryType(FLAGS_entry_type, &entry_type)) {
-    LOG(ERROR) << "Unknown or unsupported FAR entry type: " << FLAGS_entry_type;
+  if (!s::GetFarEntryType(FST_FLAGS_entry_type, &entry_type)) {
+    LOG(ERROR) << "Unknown or unsupported FAR entry type: "
+               << FST_FLAGS_entry_type;
     return 1;
   }
 
   fst::TokenType token_type;
-  if (!s::GetTokenType(FLAGS_token_type, &token_type)) {
-    LOG(ERROR) << "Unknown or unsupported FAR token type: " << FLAGS_token_type;
+  if (!s::GetTokenType(FST_FLAGS_token_type, &token_type)) {
+    LOG(ERROR) << "Unknown or unsupported FAR token type: "
+               << FST_FLAGS_token_type;
     return 1;
   }
 
-  s::FarPrintStrings(in_sources, arc_type, entry_type, token_type,
-                     FLAGS_begin_key, FLAGS_end_key, FLAGS_print_key,
-                     FLAGS_print_weight, FLAGS_symbols, FLAGS_initial_symbols,
-                     FLAGS_generate_filenames, FLAGS_filename_prefix,
-                     FLAGS_filename_suffix);
+  s::PrintStrings(
+      *reader, entry_type, token_type, FST_FLAGS_begin_key,
+      FST_FLAGS_end_key, FST_FLAGS_print_key,
+      FST_FLAGS_print_weight, FST_FLAGS_symbols,
+      FST_FLAGS_initial_symbols,
+      FST_FLAGS_generate_filenames,
+      FST_FLAGS_filename_prefix,
+      FST_FLAGS_filename_suffix);
+
+  if (reader->Error()) {
+    FSTERROR() << "Error reading FAR(s)";
+    return 1;
+  }
 
   return 0;
 }

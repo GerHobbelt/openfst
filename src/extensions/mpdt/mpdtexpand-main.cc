@@ -17,6 +17,7 @@
 //
 // Expands a (bounded-stack) MPDT as an FST.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/mpdt/mpdtscript.h>
 #include <fst/extensions/mpdt/read_write_utils.h>
@@ -60,22 +60,24 @@ int mpdtexpand_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst(FstClass::Read(in_name));
   if (!ifst) return 1;
 
-  if (FLAGS_mpdt_parentheses.empty()) {
+  if (FST_FLAGS_mpdt_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No MPDT parenthesis label pairs provided";
     return 1;
   }
 
-  std::vector<std::pair<int64, int64>> parens;
-  std::vector<int64> assignments;
-  if (!ReadLabelTriples(FLAGS_mpdt_parentheses, &parens, &assignments, false)) {
+  std::vector<std::pair<int64_t, int64_t>> parens;
+  std::vector<int64_t> assignments;
+  if (!ReadLabelTriples(FST_FLAGS_mpdt_parentheses, &parens,
+                        &assignments, false)) {
     return 1;
   }
 
   VectorFstClass ofst(ifst->ArcType());
 
-  const MPdtExpandOptions opts(FLAGS_connect, FLAGS_keep_parentheses);
+  const MPdtExpandOptions opts(FST_FLAGS_connect,
+                               FST_FLAGS_keep_parentheses);
 
-  s::MPdtExpand(*ifst, parens, assignments, &ofst, opts);
+  s::Expand(*ifst, parens, assignments, &ofst, opts);
 
   return !ofst.Write(out_name);
 }

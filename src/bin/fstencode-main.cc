@@ -22,15 +22,14 @@
 #include <string>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/script/decode.h>
 #include <fst/script/encode.h>
 #include <fst/script/getters.h>
 
+DECLARE_bool(decode);
 DECLARE_bool(encode_labels);
 DECLARE_bool(encode_weights);
 DECLARE_bool(encode_reuse);
-DECLARE_bool(decode);
 
 int fstencode_main(int argc, char **argv) {
   namespace s = fst::script;
@@ -56,18 +55,19 @@ int fstencode_main(int argc, char **argv) {
   std::unique_ptr<MutableFstClass> fst(MutableFstClass::Read(in_name, true));
   if (!fst) return 1;
 
-  if (FLAGS_decode) {
+  if (FST_FLAGS_decode) {
     std::unique_ptr<EncodeMapperClass> mapper(
         EncodeMapperClass::Read(mapper_name));
+    if (!mapper) return 1;
     s::Decode(fst.get(), *mapper);
-  } else if (FLAGS_encode_reuse) {
+  } else if (FST_FLAGS_encode_reuse) {
     std::unique_ptr<EncodeMapperClass> mapper(
         EncodeMapperClass::Read(mapper_name));
     if (!mapper) return 1;
     s::Encode(fst.get(), mapper.get());
   } else {
-    const auto flags = s::GetEncodeFlags(FLAGS_encode_labels,
-                                         FLAGS_encode_weights);
+    const auto flags = s::GetEncodeFlags(FST_FLAGS_encode_labels,
+                                         FST_FLAGS_encode_weights);
     EncodeMapperClass mapper(fst->ArcType(), flags);
     s::Encode(fst.get(), &mapper);
     if (!mapper.Write(mapper_name)) return 1;

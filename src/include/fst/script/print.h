@@ -19,6 +19,7 @@
 #define FST_SCRIPT_PRINT_H_
 
 #include <ostream>
+#include <string>
 
 #include <fst/flags.h>
 #include <fst/script/fst-class.h>
@@ -32,7 +33,7 @@ namespace script {
 // Note: it is safe to pass these strings as references because this struct is
 // only used to pass them deeper in the call graph. Be sure you understand why
 // this is so before using this struct for anything else!
-struct PrintArgs {
+struct FstPrintArgs {
   const FstClass &fst;
   const SymbolTable *isyms;
   const SymbolTable *osyms;
@@ -46,7 +47,7 @@ struct PrintArgs {
 };
 
 template <class Arc>
-void Print(PrintArgs *args) {
+void Print(FstPrintArgs *args) {
   const Fst<Arc> &fst = *args->fst.GetFst<Arc>();
   FstPrinter<Arc> fstprinter(fst, args->isyms, args->osyms, args->ssyms,
                              args->accept, args->show_weight_one, args->sep,
@@ -73,7 +74,7 @@ void PrintFst(const Fst<Arc> &fst, std::ostream &ostrm,
               const std::string &dest = "", const SymbolTable *isyms = nullptr,
               const SymbolTable *osyms = nullptr,
               const SymbolTable *ssyms = nullptr) {
-  const std::string sep = FLAGS_fst_field_separator.substr(0, 1);
+  const std::string sep = FST_FLAGS_fst_field_separator.substr(0, 1);
   FstPrinter<Arc> fstprinter(fst, isyms, osyms, ssyms, true, true, sep);
   fstprinter.Print(ostrm, dest);
 }

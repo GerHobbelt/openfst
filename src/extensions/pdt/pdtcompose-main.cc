@@ -17,6 +17,7 @@
 //
 // Composes a PDT and an FST.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/pdt/getters.h>
 #include <fst/extensions/pdt/pdtscript.h>
@@ -70,26 +70,29 @@ int pdtcompose_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst2(FstClass::Read(in2_name));
   if (!ifst2) return 1;
 
-  if (FLAGS_pdt_parentheses.empty()) {
+  if (FST_FLAGS_pdt_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No PDT parenthesis label pairs provided";
     return 1;
   }
 
-  std::vector<std::pair<int64, int64>> parens;
-  if (!ReadLabelPairs(FLAGS_pdt_parentheses, &parens, false)) return 1;
+  std::vector<std::pair<int64_t, int64_t>> parens;
+  if (!ReadLabelPairs(FST_FLAGS_pdt_parentheses, &parens, false))
+    return 1;
 
   VectorFstClass ofst(ifst1->ArcType());
 
   PdtComposeFilter compose_filter;
-  if (!s::GetPdtComposeFilter(FLAGS_compose_filter, &compose_filter)) {
+  if (!s::GetPdtComposeFilter(FST_FLAGS_compose_filter,
+                              &compose_filter)) {
     LOG(ERROR) << argv[0] << ": Unknown or unsupported compose filter type: "
-               << FLAGS_compose_filter;
+               << FST_FLAGS_compose_filter;
     return 1;
   }
 
-  const PdtComposeOptions copts(FLAGS_connect, compose_filter);
+  const PdtComposeOptions copts(FST_FLAGS_connect, compose_filter);
 
-  s::PdtCompose(*ifst1, *ifst2, parens, &ofst, copts, FLAGS_left_pdt);
+  s::Compose(*ifst1, *ifst2, parens, &ofst, copts,
+             FST_FLAGS_left_pdt);
 
   return !ofst.Write(out_name);
 }

@@ -20,8 +20,12 @@
 #ifndef FST_EXTENSIONS_FAR_FAR_H_
 #define FST_EXTENSIONS_FAR_FAR_H_
 
+#include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <utility>
 
 #include <fst/log.h>
 #include <fst/extensions/far/stlist.h>
@@ -30,10 +34,18 @@
 #include <fstream>
 #include <fst/fst.h>
 #include <fst/vector-fst.h>
+#include <string_view>
 
 namespace fst {
 
 enum class FarEntryType { LINE, FILE };
+
+enum class FarType {
+  DEFAULT = 0,
+  STTABLE = 1,
+  STLIST = 2,
+  FST = 3,
+};
 
 // Checks for FST magic number in an input stream (to be opened given the source
 // name), to indicate to the caller function that the stream content is an FST
@@ -41,7 +53,7 @@ enum class FarEntryType { LINE, FILE };
 inline bool IsFst(const std::string &source) {
   std::ifstream strm(source, std::ios_base::in | std::ios_base::binary);
   if (!strm) return false;
-  int32 magic_number = 0;
+  int32_t magic_number = 0;
   ReadType(strm, &magic_number);
   bool match = magic_number == kFstMagicNumber;
   return match;
@@ -52,28 +64,28 @@ class FarHeader {
  public:
   const std::string &ArcType() const { return arctype_; }
 
-  const std::string &FarType() const { return fartype_; }
+  enum FarType FarType() const { return fartype_; }
 
   bool Read(const std::string &source) {
     FstHeader fsthdr;
     arctype_ = "unknown";
     if (source.empty()) {
       // Header reading unsupported on stdin. Assumes STList and StdArc.
-      fartype_ = "stlist";
+      fartype_ = FarType::STLIST;
       arctype_ = "standard";
       return true;
     } else if (IsSTTable(source)) {  // Checks if STTable.
-      fartype_ = "sttable";
+      fartype_ = FarType::STTABLE;
       if (!ReadSTTableHeader(source, &fsthdr)) return false;
       arctype_ = fsthdr.ArcType().empty() ? ErrorArc::Type() : fsthdr.ArcType();
       return true;
     } else if (IsSTList(source)) {  // Checks if STList.
-      fartype_ = "stlist";
+      fartype_ = FarType::STLIST;
       if (!ReadSTListHeader(source, &fsthdr)) return false;
       arctype_ = fsthdr.ArcType().empty() ? ErrorArc::Type() : fsthdr.ArcType();
       return true;
     } else if (IsFst(source)) {  // Checks if FST.
-      fartype_ = "fst";
+      fartype_ = FarType::FST;
       std::ifstream istrm(source,
                                std::ios_base::in | std::ios_base::binary);
       if (!fsthdr.Read(istrm, source)) return false;
@@ -84,15 +96,8 @@ class FarHeader {
   }
 
  private:
-  std::string fartype_;
+  enum FarType fartype_;
   std::string arctype_;
-};
-
-enum class FarType {
-  DEFAULT = 0,
-  STTABLE = 1,
-  STLIST = 2,
-  FST = 3,
 };
 
 // This class creates an archive of FSTs.
@@ -107,7 +112,7 @@ class FarWriter {
 
   // Adds an FST to the end of an archive. Keys must be non-empty and
   // in lexicographic order. FSTs must have a suitable write method.
-  virtual void Add(const std::string &key, const Fst<Arc> &fst) = 0;
+  virtual void Add(std::string_view key, const Fst<Arc> &fst) = 0;
 
   virtual FarType Type() const = 0;
 
@@ -137,7 +142,7 @@ class FarReader {
   virtual void Reset() = 0;
 
   // Sets current position to first entry >= key. Returns true if a match.
-  virtual bool Find(const std::string &key) = 0;
+  virtual bool Find(std::string_view key) = 0;
 
   // Current position at end of archive?
   virtual bool Done() const = 0;
@@ -181,7 +186,7 @@ class STTableFarWriter : public FarWriter<A> {
     return new STTableFarWriter(writer);
   }
 
-  void Add(const std::string &key, const Fst<Arc> &fst) final {
+  void Add(std::string_view key, const Fst<Arc> &fst) final {
     writer_->Add(key, fst);
   }
 
@@ -206,7 +211,7 @@ class STListFarWriter : public FarWriter<A> {
     return new STListFarWriter(writer);
   }
 
-  void Add(const std::string &key, const Fst<Arc> &fst) final {
+  void Add(std::string_view key, const Fst<Arc> &fst) final {
     writer_->Add(key, fst);
   }
 
@@ -233,7 +238,7 @@ class FstFarWriter final : public FarWriter<A> {
     return new FstFarWriter(source);
   }
 
-  void Add(const std::string &key, const Fst<A> &fst) final {
+  void Add(std::string_view key, const Fst<A> &fst) final {
     if (written_) {
       LOG(WARNING) << "FstFarWriter::Add: only one FST supported,"
                    << " subsequent entries discarded.";
@@ -303,7 +308,7 @@ class STTableFarReader : public FarReader<A> {
 
   void Reset() final { reader_->Reset(); }
 
-  bool Find(const std::string &key) final { return reader_->Find(key); }
+  bool Find(std::string_view key) final { return reader_->Find(key); }
 
   bool Done() const final { return reader_->Done(); }
 
@@ -346,7 +351,7 @@ class STListFarReader : public FarReader<A> {
 
   void Reset() final { reader_->Reset(); }
 
-  bool Find(const std::string &key) final { return reader_->Find(key); }
+  bool Find(std::string_view key) final { return reader_->Find(key); }
 
   bool Done() const final { return reader_->Done(); }
 
@@ -424,7 +429,7 @@ class FstFarReader final : public FarReader<A> {
     ReadFst();
   }
 
-  bool Find(const std::string &key) final {
+  bool Find(std::string_view key) final {
     if (has_stdin_) {
       FSTERROR()
           << "FstFarReader::Find: Operation not supported on standard input";

@@ -18,6 +18,7 @@
 // Prints out various information about a PDT such as number of states, arcs,
 // and parentheses.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -25,7 +26,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/pdt/pdtscript.h>
 #include <fst/util.h>
@@ -54,15 +54,17 @@ int pdtinfo_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst(FstClass::Read(in_name));
   if (!ifst) return 1;
 
-  if (FLAGS_pdt_parentheses.empty()) {
+  if (FST_FLAGS_pdt_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No PDT parenthesis label pairs provided";
     return 1;
   }
 
-  std::vector<std::pair<int64, int64>> parens;
-  if (!ReadLabelPairs(FLAGS_pdt_parentheses, &parens, false)) return 1;
+  std::vector<std::pair<int64_t, int64_t>> parens;
+  if (!ReadLabelPairs(FST_FLAGS_pdt_parentheses, &parens, false)) {
+    return 1;
+  }
 
-  s::PrintPdtInfo(*ifst, parens);
+  s::Info(*ifst, parens);
 
   return 0;
 }

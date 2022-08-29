@@ -17,6 +17,7 @@
 //
 // Reverses an MPDT.
 
+#include <cstdint>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -24,7 +25,6 @@
 #include <vector>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/log.h>
 #include <fst/extensions/mpdt/mpdtscript.h>
 #include <fst/extensions/mpdt/read_write_utils.h>
@@ -59,27 +59,29 @@ int mpdtreverse_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst(FstClass::Read(in_name));
   if (!ifst) return 1;
 
-  if (FLAGS_mpdt_parentheses.empty()) {
+  if (FST_FLAGS_mpdt_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No MPDT parenthesis label pairs provided";
     return 1;
   }
 
-  if (FLAGS_mpdt_new_parentheses.empty()) {
+  if (FST_FLAGS_mpdt_new_parentheses.empty()) {
     LOG(ERROR) << argv[0] << ": No MPDT output parenthesis label file provided";
     return 1;
   }
 
-  std::vector<std::pair<int64, int64>> parens;
-  std::vector<int64> assignments;
-  if (!ReadLabelTriples(FLAGS_mpdt_parentheses, &parens, &assignments, false)) {
+  std::vector<std::pair<int64_t, int64_t>> parens;
+  std::vector<int64_t> assignments;
+  if (!ReadLabelTriples(FST_FLAGS_mpdt_parentheses, &parens,
+                        &assignments, false)) {
     return 1;
   }
 
   VectorFstClass ofst(ifst->ArcType());
 
-  s::MPdtReverse(*ifst, parens, &assignments, &ofst);
+  s::Reverse(*ifst, parens, &assignments, &ofst);
 
   if (!ofst.Write(out_name)) return 1;
 
-  return !WriteLabelTriples(FLAGS_mpdt_new_parentheses, parens, assignments);
+  return !WriteLabelTriples(FST_FLAGS_mpdt_new_parentheses, parens,
+                            assignments);
 }

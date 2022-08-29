@@ -23,7 +23,6 @@
 #include <string>
 
 #include <fst/flags.h>
-#include <fst/types.h>
 #include <fst/script/getters.h>
 #include <fst/script/push.h>
 
@@ -32,10 +31,11 @@ DECLARE_bool(push_weights);
 DECLARE_bool(push_labels);
 DECLARE_bool(remove_total_weight);
 DECLARE_bool(remove_common_affix);
-DECLARE_bool(to_final);
+DECLARE_string(reweight_type);
 
 int fstpush_main(int argc, char **argv) {
   namespace s = fst::script;
+  using fst::ReweightType;
   using fst::script::FstClass;
   using fst::script::VectorFstClass;
 
@@ -58,16 +58,21 @@ int fstpush_main(int argc, char **argv) {
   std::unique_ptr<FstClass> ifst(FstClass::Read(in_name));
   if (!ifst) return 1;
 
-  const auto flags = s::GetPushFlags(FLAGS_push_weights,
-                                     FLAGS_push_labels,
-                                     FLAGS_remove_total_weight,
-                                     FLAGS_remove_common_affix);
+  const auto flags = s::GetPushFlags(FST_FLAGS_push_weights,
+                                     FST_FLAGS_push_labels,
+                                     FST_FLAGS_remove_total_weight,
+                                     FST_FLAGS_remove_common_affix);
 
   VectorFstClass ofst(ifst->ArcType());
 
-  s::Push(*ifst, &ofst, flags,
-          s::GetReweightType(FLAGS_to_final),
-          FLAGS_delta);
+  ReweightType reweight_type;
+  if (!s::GetReweightType(FST_FLAGS_reweight_type, &reweight_type)) {
+    LOG(ERROR) << argv[0] << ": Unknown or unsupported reweight type: "
+               << FST_FLAGS_reweight_type;
+    return 1;
+  }
+
+  s::Push(*ifst, &ofst, flags, reweight_type, FST_FLAGS_delta);
 
   return !ofst.Write(out_name);
 }

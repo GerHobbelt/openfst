@@ -22,10 +22,10 @@
 #define FST_CONST_FST_H_
 
 #include <climits>
+#include <cstdint>
 #include <string>
 #include <vector>
 
-#include <fst/types.h>
 #include <fst/log.h>
 
 #include <fst/expanded-fst.h>
@@ -61,7 +61,7 @@ class ConstFstImpl : public FstImpl<A> {
 
   ConstFstImpl() {
     std::string type = "const";
-    if (sizeof(Unsigned) != sizeof(uint32)) {
+    if (sizeof(Unsigned) != sizeof(uint32_t)) {
       type += std::to_string(CHAR_BIT * sizeof(Unsigned));
     }
     SetType(type);
@@ -116,7 +116,7 @@ class ConstFstImpl : public FstImpl<A> {
   };
 
   // Properties always true of this FST class.
-  static constexpr uint64 kStaticProperties = kExpanded;
+  static constexpr uint64_t kStaticProperties = kExpanded;
   // Current unaligned file format version. The unaligned version was added and
   // made the default since the aligned version does not work on pipes.
   static constexpr int kFileVersion = 2;
@@ -138,21 +138,9 @@ class ConstFstImpl : public FstImpl<A> {
 };
 
 template <class Arc, class Unsigned>
-constexpr uint64 ConstFstImpl<Arc, Unsigned>::kStaticProperties;
-
-template <class Arc, class Unsigned>
-constexpr int ConstFstImpl<Arc, Unsigned>::kFileVersion;
-
-template <class Arc, class Unsigned>
-constexpr int ConstFstImpl<Arc, Unsigned>::kAlignedFileVersion;
-
-template <class Arc, class Unsigned>
-constexpr int ConstFstImpl<Arc, Unsigned>::kMinFileVersion;
-
-template <class Arc, class Unsigned>
 ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
   std::string type = "const";
-  if (sizeof(Unsigned) != sizeof(uint32)) {
+  if (sizeof(Unsigned) != sizeof(uint32_t)) {
     type += std::to_string(CHAR_BIT * sizeof(Unsigned));
   }
   SetType(type);
@@ -196,7 +184,7 @@ ConstFstImpl<Arc, Unsigned>::ConstFstImpl(const Fst<Arc> &fst) {
 template <class Arc, class Unsigned>
 ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
     std::istream &strm, const FstReadOptions &opts) {
-  auto impl = fst::make_unique<ConstFstImpl>();
+  auto impl = std::make_unique<ConstFstImpl>();
   FstHeader hdr;
   if (!impl->ReadHeader(strm, opts, kMinFileVersion, &hdr)) return nullptr;
   impl->start_ = hdr.Start();
@@ -212,7 +200,7 @@ ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
   }
   size_t b = impl->nstates_ * sizeof(ConstState);
   impl->states_region_.reset(
-      MappedFile::Map(&strm, opts.mode == FstReadOptions::MAP, opts.source, b));
+      MappedFile::Map(strm, opts.mode == FstReadOptions::MAP, opts.source, b));
   if (!strm || !impl->states_region_) {
     LOG(ERROR) << "ConstFst::Read: Read failed: " << opts.source;
     return nullptr;
@@ -225,7 +213,7 @@ ConstFstImpl<Arc, Unsigned> *ConstFstImpl<Arc, Unsigned>::Read(
   }
   b = impl->narcs_ * sizeof(Arc);
   impl->arcs_region_.reset(
-      MappedFile::Map(&strm, opts.mode == FstReadOptions::MAP, opts.source, b));
+      MappedFile::Map(strm, opts.mode == FstReadOptions::MAP, opts.source, b));
   if (!strm || !impl->arcs_region_) {
     LOG(ERROR) << "ConstFst::Read: Read failed: " << opts.source;
     return nullptr;
@@ -355,7 +343,7 @@ bool ConstFst<Arc, Unsigned>::WriteFst(const FST &fst, std::ostream &strm,
   hdr.SetNumStates(num_states);
   hdr.SetNumArcs(num_arcs);
   std::string type = "const";
-  if (sizeof(Unsigned) != sizeof(uint32)) {
+  if (sizeof(Unsigned) != sizeof(uint32_t)) {
     type += std::to_string(CHAR_BIT * sizeof(Unsigned));
   }
   const auto properties =
@@ -461,9 +449,9 @@ class ArcIterator<ConstFst<Arc, Unsigned>> {
 
   void Seek(size_t a) { i_ = a; }
 
-  constexpr uint8 Flags() const { return kArcValueFlags; }
+  constexpr uint8_t Flags() const { return kArcValueFlags; }
 
-  void SetFlags(uint8, uint8) {}
+  void SetFlags(uint8_t, uint8_t) {}
 
  private:
   const Arc *arcs_;

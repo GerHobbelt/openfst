@@ -15,6 +15,8 @@
 // See www.openfst.org for extensive documentation on this weighted
 // finite-state transducer library.
 
+#include <string>
+
 #include <fst/flags.h>
 #include <fst/log.h>
 #include <fst/extensions/linear/linear-fst.h>
@@ -57,7 +59,8 @@ int fstloglinearapply_main(int argc, char **argv) {
 
   fst::StdVectorFst ofst;
 
-  fst::LogLinearApply(*ifst1, *ifst2, &ofst, FLAGS_normalize);
+  fst::LogLinearApply(*ifst1, *ifst2, &ofst,
+                          FST_FLAGS_normalize);
 
   return !ofst.Write(out_name);
 }
